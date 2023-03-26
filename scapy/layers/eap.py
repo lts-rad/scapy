@@ -441,37 +441,37 @@ class EAPOL_KEY(Packet):
     fields_desc = [
         ByteEnumField("key_descriptor_type", 1, {1: "RC4", 2: "RSN"}),
         # Key Information
+        BitField("reserved2", 0, 2),
+        BitField("smk_message", 0, 1),
+        BitField("encrypted_key_data", 0, 1),
+        BitField("request", 0, 1),
+        BitField("error", 0, 1),
+        BitField("secure", 0, 1),
+        BitField("has_key_mic", 1, 1),
+        BitField("key_ack", 0, 1),
+        BitField("install", 0, 1),
+        BitField("key_index", 0, 2),
+        BitEnumField("key_type", 0, 1, {0: "Group/SMK", 1: "Pairwise"}),
         BitEnumField("key_descriptor_type_version", 0, 3, {
             1: "HMAC-MD5+ARC4",
             2: "HMAC-SHA1-128+AES-128",
             3: "AES-128-CMAC+AES-128",
         }),
-        BitEnumField("key_type", 0, 1, {0: "Group/SMK", 1: "Pairwise"}),
-        BitField("res", 0, 2),
-        BitField("install", 0, 1),
-        BitField("key_ack", 0, 1),
-        BitField("has_key_mic", 1, 1),
-        BitField("secure", 0, 1),
-        BitField("error", 0, 1),
-        BitField("request", 0, 1),
-        BitField("encrypted_key_data", 0, 1),
-        BitField("smk_message", 0, 1),
-        BitField("res2", 0, 2),
         #
-        LenField("len", None, "H"),
-        LongField("key_replay_counter", 0),
-        XStrFixedLenField("key_nonce", "", 32),
-        XStrFixedLenField("key_iv", "", 16),
-        XStrFixedLenField("key_rsc", "", 8),
-        XStrFixedLenField("key_id", "", 8),
-        ConditionalField(
-            XStrFixedLenField("key_mic", "", 16),  # XXX size can be 24
-            lambda pkt: pkt.has_key_mic
-        ),
         LenField("key_length", None, "H"),
-        XStrLenField("key", "",
-                     length_from=lambda pkt: pkt.key_length)
+        LongField("key_replay_counter", 0),
+        XStrFixedLenField("key_nonce", b"\x00"*32, 32),
+        XStrFixedLenField("key_iv", b"\x00"*16, 16),
+        XStrFixedLenField("key_rsc", b"\x00"*8, 8),
+        XStrFixedLenField("key_id", b"\x00"*8, 8),
+        XStrFixedLenField("key_mic", b"\x00"*16, 16),  # XXX size can be 24
+        LenField("wpa_key_length", None, "H"),
+        ConditionalField(
+          XStrLenField("key", b"\x00"*16,
+                     length_from=lambda pkt: pkt.key_length),
+          lambda pkt: pkt.wpa_key_length and pkt.wpa_key_length > 0)
     ]
+
 
     def extract_padding(self, s):
         return s[:self.len], s[self.len:]
